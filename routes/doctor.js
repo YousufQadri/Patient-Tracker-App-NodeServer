@@ -86,7 +86,7 @@ router.post("/register", async (req, res) => {
     const payload = {
       doctor: {
         email,
-        id: doctor.id
+        _id: doctor._id
       }
     };
 
@@ -103,6 +103,71 @@ router.post("/register", async (req, res) => {
     });
   } catch (error) {
     console.log("Error: ", error.message);
+    res.status(500).json({
+      message: "Internal server error",
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// @route    POST api/v1/doctor/login
+// @desc     Login doctor
+// @access   Public
+router.post("/login", async (req, res) => {
+  // Destructure email & password
+  let { email, password } = req.body;
+
+  // Empty fields
+  if (!email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Please fill all fields"
+    });
+  }
+
+  // Lowercase email
+  email = email.toLowerCase();
+
+  try {
+    // Find doctor
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email"
+      });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, doctor.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid password"
+      });
+    }
+
+    // Create JWT
+    const payload = {
+      doctor: {
+        email: doctor.email,
+        id: doctor._id
+      }
+    };
+
+    const token = await jwt.sign(payload, JWT_SECRET, { expiresIn: "365d" });
+
+    // Send response
+    return res.json({
+      success: true,
+      message: "Logged-in successfully!",
+      token,
+      email: doctor.email,
+      _id: doctor._id
+    });
+  } catch (error) {
+    console.log("Error:", error.message);
     res.status(500).json({
       message: "Internal server error",
       success: false,
