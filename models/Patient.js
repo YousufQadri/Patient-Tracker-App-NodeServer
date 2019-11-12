@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-const validator = require("validator");
 
 const DoctorSchema = new Schema(
   {
@@ -13,7 +12,16 @@ const DoctorSchema = new Schema(
       type: Number,
       required: true
     },
-    medicalHistory: {
+    medicalHistory: [
+      {
+        desease: String,
+        medications: String,
+        date: String
+      }
+    ],
+    type: Array,
+    default: [],
+    dateOfCheckup: {
       type: Array,
       default: []
     },
@@ -28,4 +36,4 @@ const DoctorSchema = new Schema(
   }
 );
 
-module.exports = mongoose.model("Doctor", DoctorSchema);
+module.exports = mongoose.model("Patient", DoctorSchema);
