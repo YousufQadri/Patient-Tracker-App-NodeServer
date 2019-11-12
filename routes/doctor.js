@@ -197,7 +197,6 @@ router.post("/add-patient", auth, async (req, res) => {
 
   // Remove whitespaces
   patientName = patientName.trim();
-  age = age.trim();
   const { error } = postPatienApiParamsSchema.validate({
     patientName,
     age
@@ -217,13 +216,14 @@ router.post("/add-patient", auth, async (req, res) => {
       doctorId: req.doctor.id
     });
     console.log("patient", patient);
-    // await job.save();
-    // job = await job.populate("companyId", { password: 0 }).execPopulate();
-    // return res.status(200).json({
-    //   success: true,
-    //   job,
-    //   message: "Job created!"
-    // });
+    await job.save();
+    patient = await patient.populate("doctorId").execPopulate();
+    console.log("after populate", patient);
+    return res.status(200).json({
+      success: true,
+      patient,
+      message: "Job created!"
+    });
   } catch (error) {
     return res.status(500).send({
       success: false,
