@@ -22,9 +22,10 @@ const auth = async (req, res, next) => {
   try {
     // Verify token
     const decoded = await jwt.verify(token, JWT_SECRET);
+    console.log(decoded);
 
     // Check doctor in DB
-    let userExist = await Doctor.findOne({ _id: decoded.doctor._id });
+    let userExist = await Doctor.findOne({ _id: decoded.doctor.id });
     if (!userExist) {
       res.status(401).json({
         success: false,
@@ -43,3 +44,5 @@ const auth = async (req, res, next) => {
     });
   }
 };
+
+module.exports = auth;

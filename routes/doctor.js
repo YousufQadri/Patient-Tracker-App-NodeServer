@@ -6,12 +6,13 @@ const jwt = require("jsonwebtoken");
 const config = require("config");
 // const mongoose = require("mongoose");
 const Doctor = require("../models/Doctor");
-// const auth = require("../middlewares/auth");
+const Patient = require("../models/Patient");
+const auth = require("../middlewares/auth");
 
 const JWT_SECRET = process.env.JWT_SECRET || config.get("JWT_SECRET");
 
 // create API params schema for validation
-const postApiParamsSchema = Joi.object({
+const postDoctorApiParamsSchema = Joi.object({
   doctorName: Joi.string().required(),
   password: Joi.string()
     .min(4)
@@ -20,6 +21,11 @@ const postApiParamsSchema = Joi.object({
     .email()
     .required(),
   qualification: Joi.string().required()
+});
+
+const postPatienApiParamsSchema = Joi.object({
+  patientName: Joi.string().required(),
+  age: Joi.number().required()
 });
 
 // @route    POST api/v1/doctor/register
@@ -42,7 +48,7 @@ router.post("/register", async (req, res) => {
 
   try {
     // validate api params
-    const { error } = postApiParamsSchema.validate({
+    const { error } = postDoctorApiParamsSchema.validate({
       doctorName,
       email,
       password,
@@ -172,6 +178,56 @@ router.post("/login", async (req, res) => {
       message: "Internal server error",
       success: false,
       error: error.message
+    });
+  }
+});
+
+// @route    POST api/v1/doctor/add-patient
+// @desc     Add Patient
+// @access   Private
+router.post("/add-patient", auth, async (req, res) => {
+  let { patientName, age } = req.body;
+
+  if (!patientName || !age) {
+    return res.status(400).json({
+      success: false,
+      message: "Please fill all fields"
+    });
+  }
+
+  // Remove whitespaces
+  patientName = patientName.trim();
+  age = age.trim();
+  const { error } = postPatienApiParamsSchema.validate({
+    patientName,
+    age
+  });
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+
+  try {
+    let patient = await new Patient({
+      patientName,
+      age,
+      doctorId: req.doctor.id
+    });
+    console.log("patient", patient);
+    // await job.save();
+    // job = await job.populate("companyId", { password: 0 }).execPopulate();
+    // return res.status(200).json({
+    //   success: true,
+    //   job,
+    //   message: "Job created!"
+    // });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Internal server error"
     });
   }
 });
