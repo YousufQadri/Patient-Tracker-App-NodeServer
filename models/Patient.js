@@ -19,8 +19,6 @@ const DoctorSchema = new Schema(
         date: String
       }
     ],
-    type: Array,
-    default: [],
     dateOfCheckup: {
       type: Array,
       default: []

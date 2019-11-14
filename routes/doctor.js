@@ -4,7 +4,7 @@ const Joi = require("@hapi/joi");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("config");
-// const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 const Doctor = require("../models/Doctor");
 const Patient = require("../models/Patient");
 const auth = require("../middlewares/auth");
@@ -85,7 +85,6 @@ router.post("/register", async (req, res) => {
     // Replace plain pass with hash pass
     doctor.password = hash;
 
-    console.log(doctor);
     await doctor.save();
 
     // create jsonwebtoken
@@ -216,7 +215,7 @@ router.post("/add-patient", auth, async (req, res) => {
       doctorId: req.doctor.id
     });
     console.log("patient", patient);
-    await job.save();
+    await patient.save();
     patient = await patient.populate("doctorId").execPopulate();
     console.log("after populate", patient);
     return res.status(200).json({
@@ -228,6 +227,71 @@ router.post("/add-patient", auth, async (req, res) => {
     return res.status(500).send({
       success: false,
       message: "Internal server error"
+    });
+  }
+});
+
+// @route    GET api/v1/doctor/all-patients
+// @desc     Get all patiends
+// @access   Private
+router.get("/all-patients", auth, async (req, res) => {
+  try {
+    const allPatients = await Patient.find({ doctorId: req.doctor.id });
+
+    if (!allPatients[0]) {
+      return res.status(200).send({
+        success: true,
+        message: "No patient registered yet"
+      });
+    }
+
+    return res.status(200).send({
+      success: true,
+      message: "All patient records",
+      allPatients
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+});
+
+// @route    GET api/v1/doctor/patient
+// @desc     Apply for job
+// @access   Private
+router.get("/patient/:id", auth, async (req, res) => {
+  // Check valid object ID
+  const patientId = mongoose.Types.ObjectId.isValid(req.params.id);
+  if (!patientId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid patient id!"
+    });
+  }
+
+  try {
+    // Check if patient id exist
+    const patient = await Patient.findOne({ _id: req.params.id });
+    if (!patient) {
+      return res.status(400).json({
+        success: false,
+        message: "No patient found against this ID"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Found the patient",
+      patient
+    });
+  } catch (error) {
+    return res.status(500).send({
+      success: false,
+      message: "Internal server error",
+      error: error.message
     });
   }
 });
