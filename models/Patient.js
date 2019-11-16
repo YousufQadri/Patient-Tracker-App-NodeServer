@@ -14,9 +14,10 @@ const DoctorSchema = new Schema(
     },
     medicalHistory: [
       {
-        desease: String,
+        disease: String,
         medications: String,
-        date: String
+        description: String,
+        date: Date
       }
     ],
     dateOfCheckup: {
