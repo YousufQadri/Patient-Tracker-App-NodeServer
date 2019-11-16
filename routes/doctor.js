@@ -18,14 +18,18 @@ const postDoctorApiParamsSchema = Joi.object({
     .min(4)
     .required(),
   email: Joi.string()
-    .email()
+    .email({ ignoreLength: false })
     .required(),
   qualification: Joi.string().required()
 });
 
 const postPatienApiParamsSchema = Joi.object({
   patientName: Joi.string().required(),
-  age: Joi.number().required()
+  age: Joi.number().required(),
+  disease: Joi.string().required(),
+  medications: Joi.string().required(),
+  description: Joi.string().required(),
+  date: Joi.string().required()
 });
 
 // @route    POST api/v1/doctor/register
@@ -48,6 +52,8 @@ router.post("/register", async (req, res) => {
 
   try {
     // validate api params
+    console.log("email", email);
+
     const { error } = postDoctorApiParamsSchema.validate({
       doctorName,
       email,
@@ -132,11 +138,13 @@ router.post("/login", async (req, res) => {
   }
 
   // Lowercase email
-  email = email.toLowerCase();
+  // email = email.toLowerCase();
 
   try {
     // Find doctor
-    const doctor = await Doctor.findOne({ email });
+    console.log("email", email);
+    const doctor = await Doctor.findOne({});
+    console.log("dr", doctor);
     if (!doctor) {
       return res.status(400).json({
         success: false,
@@ -168,6 +176,7 @@ router.post("/login", async (req, res) => {
       success: true,
       message: "Logged-in successfully!",
       token,
+      doctor,
       email: doctor.email,
       _id: doctor._id
     });
@@ -184,10 +193,25 @@ router.post("/login", async (req, res) => {
 // @route    POST api/v1/doctor/add-patient
 // @desc     Add Patient
 // @access   Private
-router.post("/add-patient", auth, async (req, res) => {
-  let { patientName, age } = req.body;
+router.post("/add-patient", async (req, res) => {
+  let {
+    patientName,
+    age,
+    disease,
+    medications,
+    description,
+    date,
+    doctorId
+  } = req.body;
 
-  if (!patientName || !age) {
+  if (
+    !patientName ||
+    !age ||
+    !disease ||
+    !medications ||
+    !description ||
+    !date
+  ) {
     return res.status(400).json({
       success: false,
       message: "Please fill all fields"
@@ -198,7 +222,11 @@ router.post("/add-patient", auth, async (req, res) => {
   patientName = patientName.trim();
   const { error } = postPatienApiParamsSchema.validate({
     patientName,
-    age
+    age,
+    disease,
+    medications,
+    description,
+    date
   });
 
   if (error) {
@@ -212,7 +240,8 @@ router.post("/add-patient", auth, async (req, res) => {
     let patient = await new Patient({
       patientName,
       age,
-      doctorId: req.doctor.id
+      medicalHistory: [{ disease, medications, description, date }],
+      doctorId
     });
     console.log("patient", patient);
     await patient.save();
@@ -221,12 +250,15 @@ router.post("/add-patient", auth, async (req, res) => {
     return res.status(200).json({
       success: true,
       patient,
-      message: "Job created!"
+      message: "Patient added!"
     });
   } catch (error) {
+    console.log(error.message);
+
     return res.status(500).send({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
+      error: error.message
     });
   }
 });
@@ -234,9 +266,9 @@ router.post("/add-patient", auth, async (req, res) => {
 // @route    GET api/v1/doctor/all-patients
 // @desc     Get all patiends
 // @access   Private
-router.get("/all-patients", auth, async (req, res) => {
+router.get("/all-patients/:doctorId", async (req, res) => {
   try {
-    const allPatients = await Patient.find({ doctorId: req.doctor.id });
+    const allPatients = await Patient.find({ doctorId: req.params.doctorId });
 
     if (!allPatients[0]) {
       return res.status(200).send({
@@ -251,6 +283,8 @@ router.get("/all-patients", auth, async (req, res) => {
       allPatients
     });
   } catch (error) {
+    console.log(error.message);
+
     return res.status(500).send({
       success: false,
       message: "Internal server error",
@@ -262,7 +296,7 @@ router.get("/all-patients", auth, async (req, res) => {
 // @route    GET api/v1/doctor/patient
 // @desc     Apply for job
 // @access   Private
-router.get("/patient/:id", auth, async (req, res) => {
+router.get("/patient/:id", async (req, res) => {
   // Check valid object ID
   const patientId = mongoose.Types.ObjectId.isValid(req.params.id);
   if (!patientId) {
@@ -274,7 +308,9 @@ router.get("/patient/:id", auth, async (req, res) => {
 
   try {
     // Check if patient id exist
-    const patient = await Patient.findOne({ _id: req.params.id });
+    const patient = await Patient.findOne({ _id: req.params.id }).populate(
+      "doctorId"
+    );
     if (!patient) {
       return res.status(400).json({
         success: false,
@@ -288,6 +324,8 @@ router.get("/patient/:id", auth, async (req, res) => {
       patient
     });
   } catch (error) {
+    console.log(error.message);
+
     return res.status(500).send({
       success: false,
       message: "Internal server error",
