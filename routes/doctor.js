@@ -264,7 +264,7 @@ router.post("/add-patient", async (req, res) => {
 });
 
 // @route    GET api/v1/doctor/all-patients
-// @desc     Get all patiends
+// @desc     Get all patients
 // @access   Private
 router.get("/all-patients/:doctorId", async (req, res) => {
   try {
@@ -323,6 +323,53 @@ router.get("/patient/:id", async (req, res) => {
       message: "Found the patient",
       patient
     });
+  } catch (error) {
+    console.log(error.message);
+
+    return res.status(500).send({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+});
+
+// @route    POST api/v1/doctor/patient/add-record/
+// @desc     Add patient record
+// @access   Private
+router.post("/add-record/:id", async (req, res) => {
+  const patientId = mongoose.Types.ObjectId.isValid(req.params.id);
+  if (!patientId) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid patient id!"
+    });
+  }
+  try {
+    Patient.findByIdAndUpdate(req.params.id).then(patient => {
+      const oldrecords = patient.medicalHistory;
+      const newrecord = req.body;
+      oldrecords.push(newrecord);
+
+      patient.medicalHistory = oldrecords;
+      patient.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Patient record added",
+        patient
+      });
+    });
+    // const patient = await Patient.findByIdAndUpdate(req.params.id);
+    // const records = await Patient.medicalHistory;
+    // const newRecord = req.body;
+    // const updatedRecord = [...records, newRecord];
+    // // await records.push(newRecord);
+
+    // patient.medicalHistory = updatedRecord;
+    // console.log(patient);
+
+    // // patient.save();
   } catch (error) {
     console.log(error.message);
 
