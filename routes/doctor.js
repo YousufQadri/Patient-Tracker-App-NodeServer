@@ -143,7 +143,7 @@ router.post("/login", async (req, res) => {
   try {
     // Find doctor
     console.log("email", email);
-    const doctor = await Doctor.findOne({});
+    const doctor = await Doctor.findOne({ email });
     console.log("dr", doctor);
     if (!doctor) {
       return res.status(400).json({
