@@ -138,7 +138,7 @@ router.post("/login", async (req, res) => {
   }
 
   // Lowercase email
-  // email = email.toLowerCase();
+  email = email.toLowerCase();
 
   try {
     // Find doctor
